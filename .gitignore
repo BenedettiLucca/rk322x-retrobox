@@ -8,3 +8,4 @@ bench/results/**/saves/
 
 # Compiled microbenchmark binaries (source is tracked).
 bench/rgb565-bench
+bench/rgb565-probe
