@@ -52,3 +52,22 @@ If a standalone accelerated build exists:
 ## Close criteria
 
 Backends identified or infeasibility documented; GPU acceleration proof; side-by-side numbers with no software fallback; explicit decision (stay RA / alternative) with rollback.
+
+## Result (2026-11-22)
+
+The exact `libretro/pcsx_rearmed` source (cloned to `/tmp/opencode/PCSX-ReARMed`,
+same project as the installed core) contains **no native KMS/GBM/DRM frontend**. It
+is a Libretro core plus handheld/embedded platform frontends; the only EGL-shaped
+strings belong to the GPU GLES plugin, and there is no `drmMode*` usage. A native
+standalone build therefore cannot run on this KMS-only box without adding X11/Wayland
+or a software framebuffer — both excluded by the project constraints (they previously
+caused the llvmpipe fallback documented in `docs/retroarch-lima-build.md`).
+
+Steps 2–4 are consequently moot: there is no accelerated standalone candidate to
+compare. The current Libretro path is already measured by #1/#3 (PSX 3D ~19 fps,
+dynarec essential, NEON enhancement a regression), and the remaining overhead is
+inside `#4` (RGB565 conversion) and `#6` (pacing), not the frontend.
+
+**Decision:** close #12 as completed-with-negative-result. Standalone
+PCSX-ReARMed is infeasible on this box under the no-X11/no-llvmpipe constraint; keep
+the Libretro core in RetroArch KMS. No binary, config or system change was made.

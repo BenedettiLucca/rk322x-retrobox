@@ -1,6 +1,6 @@
 # #15 — RetroArch Plain DRM with direct RGB565 scanout (read-only phase)
 
-Status: 2026-11-21 — Experiment 0 (read-only) complete; Experiment 1 (separate build) pending ARMv7 build capability.
+Status: 2026-11-22 — complete with negative result. Both Plain DRM builds compiled and were deployed separately, but `video_driver="drm"` segfaults during video init before any page flip. No A/B is possible; keep the KMS/GLES2 stack.
 
 ## 1. Hypothesis
 
@@ -53,3 +53,35 @@ Same core/ROM/BIOS/scene/governor/config, `run-scene.sh` with 30 s warmup + 120 
 - Quantitative comparison with the GLES stack, separating CPU conversion, copy and GPU work.
 - Display/tty1 recovery and rollback tested **before** any default change.
 - Only make it the default if there is a material gain and acceptable menu/shader/overlay trade-offs; otherwise close with a negative-result decision.
+
+## 6. Experiment 1 results (2026-11-22)
+
+- The configure flag is `--enable-plain_drm` (underscore); `qb/config.params.sh` has
+  `HAVE_PLAIN_DRM=no` by default. Two separate ARMv7 binaries were built from pinned
+  RetroArch 1.22.2 and deployed without touching `/usr/local/bin/retroarch-kms`:
+  - `/usr/local/bin/retroarch-plain-drm`: `--enable-plain_drm --enable-kms --enable-opengles ...`
+  - `/usr/local/bin/retroarch-plain-drm-min`: `--enable-plain_drm --disable-kms --disable-opengles ...`
+  Both report `Plain DRM - Video driver: yes` in `--features`.
+- Smoke test with an appended `video_driver = "drm"` and the SNES 16-bit core (Super
+  Metroid): both binaries **segfault (exit 139) immediately after
+  `DRM_IOCTL_MODE_SETCRTC` succeeds**. Strace shows card0 open, capability set,
+  resources/connector/CRTC queries, dumb-buffer create/addFB/mmap and SETCRTC all
+  succeeding, then SIGSEGV at a null address. No `DRM_IOCTL_MODE_PAGE_FLIP` is issued.
+- A menu-only launch (no core/game) segfaults identically, so the fault is in the
+  plain-DRM video driver's init path, not in core loading or the RGB565 workaround.
+- `dmesg` shows only repeated `EDID block 2 checksum is invalid` warnings from the
+  mode set; no kernel Oops or Lima/rockchip-drm fault. This is a userspace crash in
+  RetroArch's `gfx/drivers/drm_gfx.c`, reproducible with and without the KMS/EGL
+  context compiled in.
+- Source review of `drm_gfx.c` shows `drm_plane_setup()` requires an overlay plane
+  with a compatible format and dereferences `plane_resources`/`plane` without a
+  null check; on this RK3229 stack the plane setup path likely leaves one null.
+  Investigating or patching that upstream code is out of scope for this issue's gate.
+
+**Decision:** close #15 as completed-with-negative-result. Plain DRM is compiled and
+active but never reaches a page flip, so direct RGB565 scanout cannot be proven or
+measured here. The existing KMS + GLES2 + patched `gl2.c` path remains the only
+working stack; the RGB565 conversion cost stays as a #4 measurement. No default,
+config, DTB or kernel change was made; only two separate binaries were installed.
+Do not retry unless a newer RetroArch revision fixes `drm_gfx.c` or a targeted
+driver patch is funded/approved.
