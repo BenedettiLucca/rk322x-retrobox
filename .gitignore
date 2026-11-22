@@ -5,3 +5,6 @@ bench/results/**/*.log
 bench/results/**/*.png
 bench/results/**/screenshots/
 bench/results/**/saves/
+
+# Compiled microbenchmark binaries (source is tracked).
+bench/rgb565-bench
