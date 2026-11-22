@@ -22,6 +22,9 @@ scenes=(
 
 for entry in "${scenes[@]}"; do
   IFS='|' read -r label core rom <<<"$entry"
+  if [ -n "${ONLY_SCENE:-}" ] && [ "$label" != "$ONLY_SCENE" ]; then
+    continue
+  fi
   for rep in 1 2 3; do
     id="${label}-r${rep}"
     if [ -f "$RESULTS/$id/status.json" ] && [ -f "$RESULTS/$id.md" ] \

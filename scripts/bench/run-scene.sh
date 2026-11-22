@@ -61,6 +61,13 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
+# Cooldown gate: do not start a new measurement above ~85 C (safety doc).
+for _ in $(seq 1 12); do
+  t0=$(cat /sys/class/thermal/thermal_zone0/temp 2>/dev/null || echo 0)
+  [ "$t0" -lt 85000 ] && break
+  sleep 5
+done
+
 # Hand off DRM master from ES. Wait for ES to actually exit before starting RA.
 touch "$NO_ES"
 ES_PAUSED=1
