@@ -21,6 +21,34 @@ Compare pinned revision, license, ISA, toolchain, renderer, GLES version, EGL/GB
 
 ## Result (2026-11-22)
 
+### #14 Track A — SM64 native port: PoC built and GPU-accelerated
+- Source: `sm64pc/sm64ex` pinned locally at `/tmp/opencode/sm64ex` (the old
+  `sm64-port/sm64ex` URL is gone). Legally owned `baserom.us.z64` (8,388,608 B) was
+  used locally for asset extraction and is **not** committed.
+- ARMv7 build: Debian trixie ARMv7 QEMU container with `build-essential`, `git`,
+  `libstb-dev`, `bsdextrautils`, `libsdl2-dev`, `libgles-dev`, `libgles2`; plain
+  `make TARGET_RPI=1 -j1` (no `CFLAGS` override — overriding drops `-I include`).
+  Flags: `-march=armv7-a -mtune=cortex-a7 -mfpu=neon-vfpv4 -O3`, `-DUSE_GLES`,
+  `-DRAPI_GL=1 -DWAPI_SDL2=1 -DHAVE_SDL2=1`, linked with `-lGLESv2 -lSDL2 -no-pie`.
+- Binary: `build/us_pc/sm64.us.f3dex2e.arm`, 13,645,852 B, ELF32 ARM EABI5,
+  BuildID `5826273b57a31ecc6deff5548df968105e5466dd`, deployed to the box as
+  `/usr/local/bin/sm64ex` (not committed).
+- Smoke test as `lucca` with `SDL_VIDEODRIVER=kmsdrm`: no crash, config/save dir
+  created, 30 s run timed out as expected. `ldd` links `libGLESv2.so.2`,
+  `libSDL2-2.0.so.0`, `libdrm.so.2`. 20 s strace: 348 `LIMA_GEM_SUBMIT`,
+  173 `PAGE_FLIP`, 2 `MODE_SETCRTC` — Lima/GLES2 is active, no llvmpipe.
+- Performance: after startup, page-flip median ~87.6 ms (~11.4 fps), p95 ~170 ms
+  at the default 640×480 render target; early frames ~35 ms. This is a playability
+  PoC, not a 60 FPS result.
+- Limits: no screen capture tool on the box, so visual correctness was not verified
+  independently; Xbox controller input, audio and save-state round-trips were not
+  validated; ES integration was not added. These are required before any default
+  change. The maintenance cost of a second graphics/input stack is not justified.
+
+**Decision:** Track A is a successful accelerated PoC but not a replacement for the
+Libretro path. Do not add it to ES or make it a default. Close #14 with the PoC
+evidence plus the Track B negative result.
+
 ### #14 Track B — N64Recomp: infeasible
 `N64Recomp` and `N64ModernRuntime` sources were inspected locally: the runtime is
 x86_64/AArch64-only (64-bit pointers/`uintptr_t`, alignment and allocator assumptions)
