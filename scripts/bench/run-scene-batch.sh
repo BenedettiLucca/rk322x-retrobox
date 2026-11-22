@@ -6,6 +6,7 @@ label=$1
 core=$2
 rom=$3
 reps=${4:-3}
+append=${5:-}
 out=/tmp/bench
 results=bench/results/2026-11-21
 
@@ -13,8 +14,11 @@ for rep in $(seq 1 "$reps"); do
   id="${label}-r${rep}"
   echo "=== $id ($(date +%H:%M:%S)) ==="
   # SSH joins argv with spaces, so pass one pre-quoted remote command string.
-  printf -v remote_cmd 'bash -s -- --core %q --rom %q --label %q --frames 999999 --seconds 150 --strace' \
-    "$core" "$rom" "$id"
+  args=(--core "$core" --rom "$rom" --label "$id" --frames 999999 --seconds 150 --strace)
+  [ -n "$append" ] && args+=(--append "$append")
+  remote_cmd='bash -s --'
+  [ "${NO_FULLSCREEN:-0}" = "1" ] && remote_cmd="NO_FULLSCREEN=1 $remote_cmd"
+  for a in "${args[@]}"; do printf -v remote_cmd '%s %q' "$remote_cmd" "$a"; done
   ssh -o BatchMode=yes root@192.168.0.216 "$remote_cmd" < scripts/bench/run-scene.sh || echo "WARN: $id runner exited $?"
   mkdir -p "$results/$id"
   scp -q -r "root@192.168.0.216:$out/$id/." "$results/$id/" || echo "WARN: scp failed for $id"

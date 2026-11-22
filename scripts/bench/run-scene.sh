@@ -95,8 +95,9 @@ if pgrep -x retroarch-kms >/dev/null 2>&1; then
   exit 2
 fi
 
-cmd=(runuser -u "$RA_USER" -- "$RA_BIN" --config "$RA_CFG" --appendconfig "$append_file"
-     -L "$core" --fullscreen "$rom" --max-frames="$frames")
+cmd=(runuser -u "$RA_USER" -- "$RA_BIN" --config "$RA_CFG" --appendconfig "$append_file")
+[ "${NO_FULLSCREEN:-0}" = "1" ] || cmd+=(--fullscreen)
+cmd+=(-L "$core" "$rom" --max-frames="$frames")
 if [ "$strace" -eq 1 ]; then
   cmd=(strace -f -tt -e trace=ioctl,openat -o "$out/strace.log" "${cmd[@]}")
 fi
