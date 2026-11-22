@@ -28,7 +28,10 @@ Date: 2026-11-22. Harness: #1 time-window method (150 s = 30 s warmup + 120 s wi
 | `video_threaded=true` | 27.76 / 27.59 / 27.45 (~27.6) | ~55 ms | 107–113% | 88.8 / 90.0 °C | Strong gain on PSX 3D |
 | `video_threaded=true`, SNES Super Metroid | 24.61 / 24.57 / 24.49 (~24.6 vs 23.4 baseline) | ~65 ms (vs ~62) | 115–121% | 88.4 / 89.2 °C | Small gain, worse p95 |
 
-`audio_latency=128` A/B is in progress; audio underrun instrumentation is still absent.
+| `audio_latency=128` | 18.99 / 19.09 / 19.14 (~19.07) | ~105 ms | 101–105% | 87.3 / 89.2 °C | Null result: keep 64 |
+
+Audio underrun instrumentation is still absent, so the only measurable effect is the
+null FPS/frametime result above; no claim about audible crackling can be made.
 
 ## Interpretation
 
@@ -44,10 +47,17 @@ Date: 2026-11-22. Harness: #1 time-window method (150 s = 30 s warmup + 120 s wi
   probe or underrun counter); a user-visible check is required before making
   `video_threaded=true` a global default.
 
-## Decision (provisional pending audio run)
+## Decision
 
-Keep the live config unchanged for now (`video_threaded=false`, `video_vsync=true`,
-`audio_latency=64`). Record threaded video as a **recommended optional PSX profile**,
-not a global default, until display/audio/input effects are verified. Close #6 with
-this profile and the null results for VSync-off and 720p (blocked by mode-holder
-constraint), documenting that no boot-cmdline or unsafe mode was used.
+Close #6 as completed with a concrete optional profile and three null/blocked results:
+
+- **Keep live defaults** `video_vsync=true`, `video_threaded=false`, `audio_latency=64`.
+- **Optional PSX profile:** `video_threaded=true` (via `--append`) gives a reproducible
+  ~+45% delivered FPS and lower p95 on PSX 3D, with ~10 points more CPU. Do not apply
+  globally: SNES gain is small and p95 worsens slightly. Input lag/audio glitches were
+  not instrumented, so this is opt-in pending a user-visible check.
+- **Rejected:** `video_vsync=false` (~14 fps, KMS pacing conflict) and
+  `audio_latency=128` (null FPS/frametime result).
+- **Blocked:** 720p A/B — `modetest -s` cannot change the CRTC while fbcon holds it,
+  and a persistent mode-holder would conflict with RA's DRM master. 1080p60 restored;
+  no boot-cmdline or unsafe mode was used.
