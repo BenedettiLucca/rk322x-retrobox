@@ -52,3 +52,35 @@ If native 16-bit sampling is unavailable but a supported 32-bit texture is, eval
 ## Close criteria
 
 Format/path matrix with deterministic reproducer and logs; explicit keep-workaround / adapt-RA / open-Mesa-bug decision; evidence that all three original fixes stay intact.
+
+## Result (2026-11-22)
+
+Deterministic reproducer: `bench/rgb565-probe.c` (ARMv7 build via the pinned
+`debian:trixie` QEMU container; binary ignored by git). It opens `/dev/dri/card0`,
+creates a GBM BO with `GBM_FORMAT_RGB565` (stride 128 for 64×64), imports its dmabuf
+with `EGL_LINUX_DMA_BUF_EXT` + `DRM_FORMAT_RGB565` (modifier 0), and targets it with
+`glEGLImageTargetTexture2DOES` under EGL 1.5 / GLES2 Mesa 25.0.7 / Lima ("Mali400")
+renderer.
+
+Format/path matrix (all on the real box, as user `lucca` in the `video` group):
+
+| Path | Result |
+|---|---|
+| `glTexImage2D(GL_RGB565, GL_UNSIGNED_SHORT_5_6_5)` | `glGetError=0` (OK) |
+| `glTexImage2D(GL_RGB, GL_UNSIGNED_SHORT_5_6_5)` (unsized) | `glGetError=0` (OK) |
+| `glTexImage2D(GL_RGBA, GL_UNSIGNED_BYTE)` control | `glGetError=0` (OK) |
+| GBM RGB565 BO → dmabuf `EGLImageKHR` | created OK |
+| `glEGLImageTargetTexture2DOES` on that image | `glGetError=0` (OK) |
+
+This is important: the original black screen is **not** a fundamental inability of
+Lima/Mesa 25.0.7 to sample RGB565 textures or GBM EGLImages. The failure is specific
+to how RetroArch 1.22.2 configured that path (the three layers in
+`docs/lima-rgb565-fix.md`), likely format/modifier/stride handling or its error path.
+
+**Decision:** keep the proven RGBA8888 widening workaround and all three black-screen
+guards in `patches/gl2.c-lima-patched`. No in-RA native path was reintroduced: #15
+showed direct RGB565 DRM scanout segfaults in RA userspace, #4 found no robust scalar/
+NEON conversion win, and an untested renderer change risks regressing all 16-bit cores.
+No upstream Mesa bug is filed because the driver path works in the minimal reproducer.
+Revisit only with an isolated, instrumented in-RA EGLImage patch and full black-screen
+A/B. Close #5 as completed with this mixed result (reproducer + decision).

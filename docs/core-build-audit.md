@@ -32,3 +32,21 @@ For each of 3–4 candidates (PCSX-ReARMed, Snes9x, mGBA, PicoDrive):
 ## Decision gate
 
 Only adopt a rebuilt core if it shows a reproducible gain without graphics/audio/save regressions. Otherwise close with a negative/untested matrix and keep the shipped core. Build capability: host Docker binfmt now supports `linux/arm/v7` (`docker run --rm --platform linux/arm/v7 debian:trixie uname -m` → `armv7l`).
+
+## Result (2026-11-22)
+
+- Verified the exact PCSX core with `file`/`readelf -h`/`readelf -A`: ELF32 ARM EABI5,
+  hard-float ABI (`0x5000400`), CPU name `7-A`, arch v7, Thumb-2, VFPv3, NEONv1 —
+  an `armv7-neon-hf` build, as expected. SHA256
+  `81f3b435d53ab50f646712939034a139f62ec7b6a11b6010b717629fddb9c0f0`.
+- **No alternative core build was compiled.** The ARMv7 QEMU build capability exists
+  (used for RetroArch), but rebuilding every upstream core with
+  `-mcpu=cortex-a7`/`-O3` is a large effort with no evidence it beats the already
+  NEON-enabled buildbot binaries. #3 showed the current PCSX core is already the
+  fastest supported configuration (dynarec on, NEON enhancement off).
+- Core hashes and sizes for all 14 ES systems are inventoried in
+  `bench/results/2026-11-21/system.json` under `cores`.
+
+**Decision:** close #7 as completed with a negative result for alternative builds: keep
+the installed buildbot/Debian cores. Revisit only if a specific core is shown to be a
+bottleneck by fresh per-core measurements.

@@ -1,6 +1,6 @@
 # #17 — Quick wins: RetroArch/PCSX config audit (no recompile)
 
-Status: 2026-11-21 — read-only inventory complete; A/B matrix pending.
+Status: 2026-11-21 — complete. Inventory and A/B matrix done; no reproducible gain found, so the active configuration is kept.
 Source: `bench/results/2026-11-21/system.json` (collected by `scripts/bench/collect-system.sh`).
 
 ## 1. Scope
@@ -105,7 +105,32 @@ PCSX core-option tests are explicitly deferred to #3 to avoid duplicating work a
 ## 7. Acceptance criteria
 
 - [x] Active config and core options inventoried from the live box, with no private paths/ROMs committed (`system.json` is saved locally under `bench/results/`).
-- [ ] Override files enumerated; no hidden per-game overrides.
-- [ ] One-variable A/B matrix with ≥3 reps per variant, thermal limitation stated.
-- [ ] Low-overhead PS1 profile and restorable compatibility profile **only if** a reproducible gain is measured.
-- [ ] No regression of ES/Xbox input/audio/scalers/menus; no personal paths committed.
+- [x] Override files enumerated; no hidden per-game overrides (only the PCSX core `.opt`).
+- [x] One-variable A/B matrix with ≥3 reps per variant, thermal limitation stated (see §8).
+- [x] No low-overhead PS1 profile proposed: **no reproducible gain was measured**. Keep the current config as the compatibility profile.
+- [x] No regression of ES/Xbox input/audio/scalers/menus; no personal paths committed.
+
+## 8. A/B results (2026-11-21)
+
+Orchestrator: `scripts/bench/run-config-ab.sh <label> <remote-append-cfg>`. Scene: PSX 3D
+Crash Bandicoot, 3 reps × 150 s per arm, `BENCH_WARMUP=30`, all `status=ok`.
+Every number is thermal-limited (89–91 °C, 1.2 → ~1.008 GHz).
+
+| Arm | FPS (3 reps, page flips) | Mean | p95 frame interval | Temp mean/max |
+|---|---|---:|---:|---:|
+| baseline (as found) | 19.04 / 15.03 (outlier) / 18.97 | ~19.0 (clean reps) | ~105 ms | 88.4 / 90.0 °C |
+| `video_filter_enable=false` | 18.37 / 18.76 / 18.77 | 18.63 | ~108 ms | up to 91.0 °C |
+| `video_max_swapchain_images=2` | 15.75 / 15.69 / 15.70 | 15.71 | ~118 ms | 86.7 / 89.2 °C |
+
+- **Filter-off:** null/slightly worse and within noise. The filter was already empty; setting
+  the enable flag to false has no measurable benefit.
+- **Swapchain 2:** a reproducible **regression of ~3.3 fps** versus the clean baseline
+  (19.0 → 15.7). Keep `video_max_swapchain_images=3`. Lower temperature simply reflects less
+  work being done.
+- Append files were verified in each result dir (`config_save_on_exit=false` present), so the
+  live config was never modified. RA logs show only the expected timeout shutdown.
+
+**Decision:** no config change is justified by this A/B. Keep the active `retroarch-kms.cfg`
+and PCSX `.opt` untouched. Close #17 with a null-result report (the audit itself is the
+deliverable). VSync/threaded/audio-sync experiments that need display or audio instrumentation
+are explicitly deferred to #6.

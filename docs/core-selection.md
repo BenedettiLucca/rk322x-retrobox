@@ -27,3 +27,28 @@ Map `es_systems.cfg` → exact command/`.so`/version/options/ROM format. For eac
 ## Status
 
 Only PSX, SNES and GBA have staged legal scenes. Other systems are untested until their ROM formats and core availability are confirmed. Update this table with measured results; do not infer viability from core names.
+
+## Measured results (2026-11-22)
+
+From the #1 baseline matrix (all thermal-limited at ~89–90 °C, 1.2 → ~1.008 GHz):
+
+| System | Core | Scene | Delivered FPS | p95 interval | Status |
+|---|---|---|---:|---:|---|
+| PSX | PCSX-ReARMed | Crash Bandicoot (3D) | 17.7 | 124 ms | Partial — playable but slow |
+| PSX | PCSX-ReARMed | CTR (3D) | 19.2 | 101 ms | Partial |
+| PSX | PCSX-ReARMed | PaRappa (2D/audio) | 23.3 | 80 ms | Partial |
+| SNES | Snes9x | Super Metroid | 23.4 | 62 ms | Partial — glitches not observed visually |
+| GBA | mGBA | Pokemon Emerald | 27.0 | 55 ms | Partial |
+| NES / GB / GBC / MD / GG / SMS / PCE / arcade / FBA / NDS / Saturn | various | none staged | — | — | Untested (no legal scene staged) |
+
+Notes:
+
+- No system is marked "full speed": page-flip FPS is well below the 50/60 Hz target on
+  every measured scene. `video_threaded=true` lifts PSX 3D to ~27.6 fps but needs
+  input/audio verification before becoming a profile (#6).
+- The 11 untested systems cannot be promoted or rejected without ROMs; no claim is made.
+- Alternative lighter cores (gpSP, Snes9x 2002, PicoDrive, FBNeo romset checks) were not
+  A/B tested because the required ROM sets are absent; keep current `/etc/emulationstation/es_systems.cfg` mappings.
+
+**Decision:** close #8 with the measured matrix above; keep current core defaults, no
+ROM/config changes. Reopen only when additional legal scenes are provided.

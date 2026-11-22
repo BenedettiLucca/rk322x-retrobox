@@ -1,0 +1,27 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  static-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Shell syntax
+        run: |
+          bash -n scripts/*.sh scripts/bench/*.sh
+      - name: Python syntax
+        run: |
+          python3 -m py_compile scripts/bench/analyze.py
+      - name: Pinned RetroArch patch applies
+        run: |
+          git clone --filter=blob:none https://github.com/libretro/RetroArch.git /tmp/RetroArch
+          git -C /tmp/RetroArch checkout -q 7872266
+          git -C /tmp/RetroArch apply --check "$GITHUB_WORKSPACE/patches/retroarch-7872266-lima-rgb565.patch"
+
+  note:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "CI verifies syntax and patch applicability; DRM/Lima functionality requires the RK322x box."

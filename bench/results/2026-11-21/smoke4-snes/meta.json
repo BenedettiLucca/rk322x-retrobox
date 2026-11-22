@@ -1,0 +1,14 @@
+{
+  "label": "smoke4-snes",
+  "start": 1795305966,
+  "end": 1795305985,
+  "elapsed_s": 19,
+  "frames_requested": 300,
+  "frames_per_s_wall": 15.789,
+  "core": "/usr/lib/arm-linux-gnueabihf/libretro/snes9x_libretro.so",
+  "rom": "/roms/roms/snes/Super Metroid (Japan, USA) (En,Ja).sfc",
+  "out": "/tmp/bench/smoke4-snes",
+  "exit_code": 0,
+  "status": "ok",
+  "note": "frames_per_s_wall includes startup; use strace page flips and vsync-off runs for real throughput"
+}

@@ -16,3 +16,23 @@ During PSX 3D, PSX 2D and GBA scenes collect `free -h`, `swapon --show`, `zramct
 ## Status
 
 Inventory complete; dynamic measurements pending after the #1 baseline matrix. Audio underruns remain uninstrumented (see #1/#6); avoid attributing crackle to CPU without data.
+
+## Result (2026-11-22)
+
+Dynamic data came from the 15 baseline runs (`bench/results/2026-11-21/`):
+
+- RetroArch RSS stayed ~102–117 MB (SNES 102 MB, PSX 104–106 MB, GBA 117 MB).
+  zram swap was 485 MiB with 0 used; no OOM, no pressure events, no swap-in.
+- Page cache is shared with the mounted ROMS volume; all PSX scenes used CHD files
+  successfully (`Crash Bandicoot.chd`, `CTR - Crash Team Racing.chd`,
+  `PaRappa the Rapper.chd`). No ISO/BIN-vs-CHD A/B was run, so no claim about
+  decompression cost is made.
+- The installed PCSX core exposes no `cd_readahead` option in its `.opt`/`strings`
+  inventory, so the ~750 MB precache warning from the issue is not applicable here.
+- ES is terminated during benchmark launches (DRM master cannot be shared), so it
+  holds no private memory while the game runs; no service was killed blindly.
+- Audio latency A/B (`audio_latency=128`) was a null FPS result (#6); without an
+  underrun counter, crackle cannot be attributed to buffering or CPU.
+
+**Decision:** no memory, swap, zram, read-ahead or media-format change. Close #11 with a
+negative result: 1 GB RAM is not the bottleneck; CPU/thermal saturation dominates.

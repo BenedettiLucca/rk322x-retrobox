@@ -1,0 +1,14 @@
+{
+  "label": "smoke-plaindrm-snes",
+  "start": 1795318219,
+  "end": 1795318221,
+  "elapsed_s": 2,
+  "frames_requested": 300,
+  "frames_per_s_wall": 150.0,
+  "core": "/usr/lib/arm-linux-gnueabihf/libretro/snes9x_libretro.so",
+  "rom": "/roms/roms/snes/Super Metroid (Japan, USA) (En,Ja).sfc",
+  "out": "/tmp/bench/smoke-plaindrm-snes",
+  "exit_code": 139,
+  "status": "failed",
+  "note": "time window controlled by timeout; rc 124 is expected; frames_per_s_wall includes startup; use strace page flips for delivered FPS"
+}

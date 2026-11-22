@@ -48,3 +48,24 @@ ssh -o BatchMode=yes root@192.168.0.216 'dmesg | grep -i rga'
 - End-to-end latency A/B vs scalar/NEON on the real box.
 - Close as *not planned* if no consistent gain or if complexity/bug risk outweighs it.
 - No kernel/DTB/firmware changes without the recoverable-boot plan from #9.
+
+## 6. Result (2026-11-22)
+
+Stage 1 confirmed the hardware node and driver (`rockchip-rga 20060000.rga`, HW version
+0x04.01, exposed as `/dev/video0`), but the userspace interface was never established:
+`v4l2-ctl` is not installed on the box, no V4L2 mem2mem/dma-buf probe was written,
+and no format/stride matrix was produced. Stage 2 was therefore not started.
+
+The two routes that could have justified the work are both closed:
+
+- #15 (direct RGB565 DRM plane scanout) failed in userspace — both pinned Plain DRM
+  builds segfault after `DRM_IOCTL_MODE_SETCRTC`; there is no working no-conversion path
+  to compare against.
+- #4 (scalar/NEON converter) showed no robust win; standalone conversion is ~13 ms at
+  640x478 and NEON is at best equal. RGA setup/queue/cache-sync cost would have to beat
+  that, with no evidence it can.
+
+**Decision:** close #16 as not planned / negative result. Presence proven, ROI unproven,
+cost and DTB/mainline dependency not justified while the CPU/thermal bottleneck dominates.
+No kernel, DTB or firmware change; reopen only if #4 instrumentation shows conversion is a
+top bottleneck and a V4L2/dma-buf reproducer proves sub-ms blits.

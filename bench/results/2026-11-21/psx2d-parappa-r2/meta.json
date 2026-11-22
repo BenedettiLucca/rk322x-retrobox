@@ -1,0 +1,14 @@
+{
+  "label": "psx2d-parappa-r2",
+  "start": 1795310514,
+  "end": 1795310671,
+  "elapsed_s": 157,
+  "frames_requested": 999999,
+  "frames_per_s_wall": 6369.42,
+  "core": "/usr/local/lib/libretro/pcsx_rearmed_libretro.so",
+  "rom": "/roms/roms/psx/PaRappa the Rapper.chd",
+  "out": "/tmp/bench/psx2d-parappa-r2",
+  "exit_code": 124,
+  "status": "ok",
+  "note": "time window controlled by timeout; rc 124 is expected; frames_per_s_wall includes startup; use strace page flips for delivered FPS"
+}

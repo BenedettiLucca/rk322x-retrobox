@@ -25,3 +25,30 @@
 ## Immediate safe fix
 
 Make `scripts/box.sh` SSH target configurable (`BOX` env/flag) and remove insecure host-key defaults. This is a local, reversible change with no box impact.
+
+## Result (2026-11-22)
+
+- `scripts/box.sh` now uses `${BOX:-root@192.168.0.216}`, no
+  `StrictHostKeyChecking=no`/`UserKnownHostsFile=/dev/null`, and SIGTERM-by-command-line
+  ES shutdown. Root SSH with a known_hosts entry is the documented path; the optional
+  `lucca` key/sudo work was dropped as unnecessary (user clarification).
+- The full-file `patches/gl2.c-lima-patched` (11,094 lines) was compared against the
+  exact pinned upstream commit `7872266` (not the 1.22.2 tarball): the real change is
+  a **155-line diff**, now committed as
+  `patches/retroarch-7872266-lima-rgb565.patch`. The full file is kept as a reference
+  only; the patch is the reviewable source of truth.
+- `scripts/build-retroarch-kms.sh` pins commit `7872266`, runs `git apply --check`,
+  builds once with `-j4` in an ARMv7 QEMU `debian:trixie` container using the documented
+  configure flags, and prints the output SHA256. No concurrent builds.
+- `.github/workflows/ci.yml` checks shell/Python syntax and verifies the patch applies
+  at the pinned commit. It explicitly does **not** claim to test DRM/Lima functionality;
+  that remains a box-only E2E test.
+- Backup/rollback: previous binary `/usr/local/bin/retroarch-kms.bak-565` is retained;
+  ES/tty1 recovery via `~/.no-es` + `systemctl restart getty@tty1` is documented in
+  `docs/testing-safety.md` and exercised by every benchmark run.
+- Benchmark results under `bench/results/` contain no ROMs, BIOS, save states, personal
+  paths or IPs (analyzed CSV/JSON/Markdown only; logs/screenshots ignored).
+
+**Decision:** close #10 as completed. Known residual limitation: the pinned build script
+is provided and CI checks patch applicability, but a clean-clone cross-build is not run
+in hosted CI (ARM QEMU build remains a local command). No insecure SSH defaults remain.

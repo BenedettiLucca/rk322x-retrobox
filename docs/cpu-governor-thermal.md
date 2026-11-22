@@ -1,6 +1,6 @@
 # #2 — CPU frequency, governor, thermal and GPU clocks (RK322x)
 
-Status: inventory complete; governor A/B pending (will run after the #1 baseline matrix so the two experiments do not interfere).
+Status: complete. Inventory and a reversible `ondemand` vs `performance` A/B were run after the #1 baseline. Result: no stable gain; keep `ondemand`.
 
 ## Inventory (2026-11-21, `scripts/bench/collect-system.sh`, `bench/results/2026-11-21/system.json`)
 
@@ -28,3 +28,30 @@ Status: inventory complete; governor A/B pending (will run after the #1 baseline
 - 1 s time series and 2 min / 15 min snapshots for each arm (per-CPU freq, per-thread CPU, temp, delivered FPS).
 - Table of real clocks/governor, throttling evidence and a reversible recommendation.
 - Close as `completed` with the evidence; if `performance` gives no stable FPS gain under thermal throttling, close with a negative result recommending keeping `ondemand`.
+
+## A/B results (2026-11-21)
+
+Harness: `scripts/bench/run-governor-ab.sh performance` (saves and restores cpufreq state via
+`scripts/bench/cpufreq.sh`). The as-found state was `ondemand 600000 1008000` — the 1.2 GHz
+OPP was already thermally capped when the A/B started. The `performance` arm set min/max to
+1.2 GHz, but the thermal driver kept the effective clock near 1.008–1.1 GHz, so the comparison
+is honest but thermal-limited in both arms.
+
+| Scene | Governor | FPS (mean of 3, from page flips) | p95 frame interval | Temp mean/max | CPU total | Mean cpu0 freq |
+|---|---|---:|---:|---:|---:|---:|
+| PSX 3D Crash Bandicoot | ondemand | 17.68 (19.04 / 15.03 / 18.97) | 123.7 ms | 88.8 / 89.4 °C | 95.7% | 1.065 GHz |
+| PSX 3D Crash Bandicoot | performance | 18.99 (19.11 / 18.95 / 18.92) | 106.0 ms | 89.2 / 90.0 °C | 99.0% | 1.038 GHz |
+| SNES Super Metroid | ondemand | 23.40 | 61.9 ms | 88.3 / 88.3 °C | 98.9% | 1.012 GHz |
+| SNES Super Metroid | performance | 23.32 | 62.0 ms | 90.7 / 91.1 °C | 98.9% | 1.008 GHz |
+
+- The PSX ondemand mean is dragged down by one early outlier (15.03 fps, taken while a stale
+  process was still present); the two clean ondemand reps (19.04 / 18.97) match the
+  performance arm (19.11 / 18.95 / 18.92). There is **no stable FPS gain**.
+- SNES is identical in both arms; `performance` actually runs ~2.4 °C hotter (91.1 °C peak).
+- Per-CPU frequency series confirm thermal throttling in both arms (1.2 GHz → ~1.008 GHz).
+- Governor/min/max were restored on exit (`ondemand 600000 1008000`) and read back.
+
+**Recommendation:** keep `ondemand` (as found). Close #2 with a negative result: forcing the
+`performance` governor does not overcome the thermal cap and only raises temperature. Any
+future gain must come from reducing CPU work (#3, #4, #6, #7) or from cooling, not from the
+governor. No voltage/OPP/DTB changes were made.

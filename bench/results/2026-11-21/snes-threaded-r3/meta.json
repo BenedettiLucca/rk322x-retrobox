@@ -1,0 +1,14 @@
+{
+  "label": "snes-threaded-r3",
+  "start": 1795320755,
+  "end": 1795320912,
+  "elapsed_s": 157,
+  "frames_requested": 999999,
+  "frames_per_s_wall": 6369.42,
+  "core": "/usr/lib/arm-linux-gnueabihf/libretro/snes9x_libretro.so",
+  "rom": "/roms/roms/snes/Super Metroid (Japan, USA) (En,Ja).sfc",
+  "out": "/tmp/bench/snes-threaded-r3",
+  "exit_code": 124,
+  "status": "ok",
+  "note": "time window controlled by timeout; rc 124 is expected; frames_per_s_wall includes startup; use strace page flips for delivered FPS"
+}
