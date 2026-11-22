@@ -1,1 +1,7 @@
 bin/retroarch-kms
+
+# Raw benchmark artifacts: keep analyzed CSV/JSON/Markdown, drop noisy logs/assets.
+bench/results/**/*.log
+bench/results/**/*.png
+bench/results/**/screenshots/
+bench/results/**/saves/
