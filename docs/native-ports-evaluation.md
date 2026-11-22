@@ -18,3 +18,24 @@ Record discarded Zelda64Recomp + RT64 (Vulkan 1.2/D3D12 SM6, AArch64, not ARMv7)
 ## #18 matrix
 
 Compare pinned revision, license, ISA, toolchain, renderer, GLES version, EGL/GBM/KMSDRM support, SDL2 version, dependencies, asset requirements and effort. Quick validate `SDL_VIDEODRIVER=kmsdrm` on the box, renderer string, and no llvmpipe. Prioritize ScummVM (freeware), then note blocked DevilutionX/OpenLara. Do not promise 60 FPS for engines without a meaningful metric; use responsive/playable criteria and boot/menu/return measurements.
+
+## Result (2026-11-22)
+
+### #14 Track B — N64Recomp: infeasible
+`N64Recomp` and `N64ModernRuntime` sources were inspected locally: the runtime is
+x86_64/AArch64-only (64-bit pointers/`uintptr_t`, alignment and allocator assumptions)
+and recommends RT64/Vulkan, which Mali-400/Lima cannot provide. No ARMv7/armhf target
+exists. Zelda64Recomp additionally requires Vulkan 1.2/D3D12 SM6 and is AArch64-only.
+**Close Track B with a negative result:** static N64 recomp is infeasible on this box
+without a new ARMv7 runtime and a GLES2 renderer replacement.
+
+### #18 — blocked / not planned
+- OpenLara and DevilutionX: no Tomb Raider/Diablo game data available; no build or
+  smoke test performed. Documented as blocked, not as a performance result.
+- ScummVM: source cloned (`/tmp/opencode/scummvm`) but no freeware game data or ARMv7
+  SDL2/KMSDRM smoke test was completed. The Libretro ScummVM core is not installed in
+  the current RA build, so there is no baseline to migrate from.
+- No native-port build, deploy or ES entry was added; no llvmpipe claim is made.
+
+Close #18 with a blocked decision: revisit only when legal game data and a pinned
+ARMv7/GLES2/KMSDRM build are available.

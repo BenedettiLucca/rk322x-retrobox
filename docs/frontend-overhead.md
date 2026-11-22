@@ -18,3 +18,23 @@ Test a light ES theme (no videos/artwork/animations, smaller thumbnails) and mea
 ## Phase 2 (only if justified)
 
 A minimal Rust + SDL2/KMSDRM launcher may navigate the 14 systems, favourites, recents and simple filters, with optional fixed-size cached covers. It must not include online scraping, complex DB, preview videos or heavy shaders in v1. The graphical UI should exit before launching a game; a separate tiny supervisor starts the app, waits for exit and restarts the launcher. Keep `es_systems.cfg` import compatibility and safe argument escaping. Build pinned ARMv7 hard-float with `-C target-cpu=cortex-a7` only if supported. Prototype in a separate branch with one-command SSH/keyboard rollback; never replace production ES or boot before that.
+
+## Result (2026-11-22)
+
+- The benchmark harness must stop ES (full command-line match) because ES holds DRM
+  master; every game measurement was therefore taken with ES fully stopped. RetroArch
+  RSS was ~102–117 MB and zram swap remained unused (#11). No frontend private memory
+  was present during any measured game.
+- We did not benchmark a game launched through the ES UI: ES and RetroArch cannot both
+  hold DRM master on this box, and the safe handoff used by `scripts/box.sh` also stops
+  ES. Thus there is no evidence that ES is resident during normal gameplay, and no
+  evidence that replacing it would improve emulation FPS. All measured gains came from
+  core/video options (#3/#6) under the same direct launch, independent of the frontend.
+- Gate 0 conclusion: frontend replacement is **not** justified as an emulation
+  optimization. Phase 1 (light theme, RGUI, supervisor) and Phase 2 (Rust PoC) were not
+  implemented; they would be UX/boot-time work only, not performance work.
+- `scripts/box.sh` was hardened (configurable `BOX`, no insecure SSH defaults, orderly
+  ES shutdown) but production ES, getty autostart and ROM mapping remain unchanged.
+
+**Decision:** close #19 with a negative result; keep EmulationStation. Reopen only for a
+UX/boot-time goal with its own acceptance criteria, never as a claimed FPS fix.
