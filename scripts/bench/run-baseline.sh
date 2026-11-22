@@ -24,6 +24,11 @@ for entry in "${scenes[@]}"; do
   IFS='|' read -r label core rom <<<"$entry"
   for rep in 1 2 3; do
     id="${label}-r${rep}"
+    if [ -f "$RESULTS/$id/status.json" ] && [ -f "$RESULTS/$id.md" ] \
+       && grep -q '"status":"ok"' "$RESULTS/$id/status.json"; then
+      echo "=== skip $id (already complete) ==="
+      continue
+    fi
     echo "=== $id ($(date +%H:%M:%S)) ==="
     $SSH "bash -s -- --core '$core' --rom \"$rom\" --label '$id' --frames 999999 --seconds 150 --strace" \
       < scripts/bench/run-scene.sh || echo "WARN: $id returned nonzero" >&2
