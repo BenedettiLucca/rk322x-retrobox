@@ -4,9 +4,9 @@
 # and always restores ES/tty1 on exit.
 set -euo pipefail
 
-RA_BIN="/usr/local/bin/retroarch-kms"
-RA_CFG="/home/lucca/.config/retroarch/retroarch-kms.cfg"
-RA_USER="lucca"
+RA_BIN="${RA_BIN:-/usr/local/bin/retroarch-kms}"
+RA_CFG="${RA_CFG:-/home/lucca/.config/retroarch/retroarch-kms.cfg}"
+RA_USER="${RA_USER:-lucca}"
 HOME_DIR="/home/lucca"
 NO_ES="$HOME_DIR/.no-es"
 
@@ -74,12 +74,17 @@ ES_PAUSED=1
 # The kernel truncates comm to 15 chars ("emulationstatio"), so match the full
 # command line with -f rather than the process name.
 pkill -TERM -f '^/usr/local/bin/emulationstation' >/dev/null 2>&1 || true
-for _ in $(seq 1 10); do
+for _ in $(seq 1 20); do
   pgrep -f '^/usr/local/bin/emulationstation' >/dev/null 2>&1 || break
   sleep 1
 done
 if pgrep -f '^/usr/local/bin/emulationstation' >/dev/null 2>&1; then
-  echo "emulationstation did not exit after SIGTERM; aborting" >&2
+  echo "emulationstation ignored SIGTERM for 20 s; using SIGKILL" >&2
+  pkill -KILL -f '^/usr/local/bin/emulationstation' >/dev/null 2>&1 || true
+  sleep 2
+fi
+if pgrep -f '^/usr/local/bin/emulationstation' >/dev/null 2>&1; then
+  echo "emulationstation did not exit; aborting" >&2
   exit 2
 fi
 # Give the kernel driver a moment to release DRM master.
