@@ -57,7 +57,11 @@ def summarize(outdir):
         with open(meta_path) as f:
             meta = json.load(f)
 
+    warmup = float(os.environ.get('BENCH_WARMUP', '0'))
+
     lines = ['## %s' % meta.get('label', os.path.basename(outdir)), '']
+    if warmup:
+        lines.append('- Analysis window: first %.0fs discarded (BENCH_WARMUP)' % warmup)
     lines.append('- Status: %s (exit %s)' % (meta.get('status', '?'), meta.get('exit_code', '?')))
     lines.append('- Requested frames: %s' % meta.get('frames_requested', '?'))
     lines.append('- Elapsed: %ss' % meta.get('elapsed_s', '?'))
@@ -66,6 +70,9 @@ def summarize(outdir):
     lines.append('')
 
     samples = read_samples(os.path.join(outdir, 'samples.csv')) if os.path.isfile(os.path.join(outdir, 'samples.csv')) else []
+    if warmup and samples:
+        t0 = numeric(samples[0], 'time_s')
+        samples = [r for r in samples if numeric(r, 'time_s') - t0 >= warmup]
     if samples:
         def col(key):
             return [numeric(r, key) for r in samples]
@@ -92,6 +99,9 @@ def summarize(outdir):
     trace = os.path.join(outdir, 'strace.log')
     if os.path.isfile(trace):
         times = read_pageflips(trace)
+        if warmup and times:
+            t0 = times[0]
+            times = [t for t in times if t - t0 >= warmup]
         deltas = [(b - a) * 1000 for a, b in zip(times, times[1:]) if 0 < b - a < 5]
         if deltas:
             lines.append('Page flips (from strace DRM ioctls): %d' % len(times))

@@ -10,7 +10,9 @@ RA_USER="lucca"
 HOME_DIR="/home/lucca"
 NO_ES="$HOME_DIR/.no-es"
 
-core="" rom="" label="" frames="7200" seconds="120" append="" vsync="" out=""
+# Time-based windows: frames are set high so the timeout controls the run.
+# Default 150 s = 30 s warmup + 120 s measurement; analyze.py filters the warmup.
+core="" rom="" label="" frames="999999" seconds="150" append="" vsync="" out=""
 strace=0
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -111,7 +113,7 @@ sampler_pid=$!
 
 start=$(date +%s)
 set +e
-timeout --signal=TERM "$((seconds + 60))" "${cmd[@]}" > "$log" 2>&1
+timeout --signal=TERM "$((seconds + 5))" "${cmd[@]}" > "$log" 2>&1
 rc=$?
 set -e
 end=$(date +%s)
@@ -127,17 +129,17 @@ data = {
     'frames_requested': int(frames),
     'frames_per_s_wall': round(int(frames) / elapsed, 3) if elapsed else None,
     'core': core, 'rom': rom, 'out': out, 'exit_code': int(rc),
-    'status': 'ok' if int(rc) == 0 else 'failed',
-    'note': 'frames_per_s_wall includes startup; use strace page flips and vsync-off runs for real throughput',
+    'status': 'ok' if int(rc) in (0, 124) else 'failed',
+    'note': 'time window controlled by timeout; rc 124 is expected; frames_per_s_wall includes startup; use strace page flips for delivered FPS',
 }
 open(meta, 'w').write(json.dumps(data, indent=2))
 PY
 printf '{"status":"%s","exit_code":%d}\n' \
-  "$( [ "$rc" -eq 0 ] && echo ok || echo failed )" "$rc" > "$out/status.json"
+  "$( [ "$rc" -eq 0 ] || [ "$rc" -eq 124 ] && echo ok || echo failed )" "$rc" > "$out/status.json"
 
-if [ "$rc" -ne 0 ]; then
+if [ "$rc" -ne 0 ] && [ "$rc" -ne 124 ]; then
   echo "retroarch exited with $rc; last 25 log lines:" >&2
   tail -n 25 "$log" >&2
 fi
 
-echo "scene finished: $out (status=$( [ "$rc" -eq 0 ] && echo ok || echo failed ))"
+echo "scene finished: $out (status=$( [ "$rc" -eq 0 ] || [ "$rc" -eq 124 ] && echo ok || echo failed ))"
