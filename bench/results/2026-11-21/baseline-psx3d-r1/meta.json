@@ -1,0 +1,14 @@
+{
+  "label": "baseline-psx3d-r1",
+  "start": 1795308542,
+  "end": 1795308724,
+  "elapsed_s": 182,
+  "frames_requested": 7200,
+  "frames_per_s_wall": 39.56,
+  "core": "/usr/local/lib/libretro/pcsx_rearmed_libretro.so",
+  "rom": "/roms/roms/psx/Crash Bandicoot.chd",
+  "out": "/tmp/bench/baseline-psx3d-r1",
+  "exit_code": 124,
+  "status": "failed",
+  "note": "frames_per_s_wall includes startup; use strace page flips and vsync-off runs for real throughput"
+}

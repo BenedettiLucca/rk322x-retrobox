@@ -1,0 +1,155 @@
+--- a/gfx/drivers/gl2.c
++++ b/gfx/drivers/gl2.c
+@@ -1798,6 +1798,28 @@
+    }
+ #endif
+ }
++#if defined(HAVE_OPENGLES)
++/* lima (Mali-400) samples RGB565 textures as black. Widen 16-bit
++ * core frames to RGBA8888 so they ride the well-tested 32-bit path. */
++static void gl2_rgb565_to_rgba8888(uint8_t *dst,
++      const uint16_t *src, unsigned width, unsigned height, size_t pitch)
++{
++   unsigned x, y;
++   for (y = 0; y < height; y++, src += pitch >> 1, dst += (size_t)width << 2)
++   {
++      const uint16_t *s = src;
++      uint8_t *d         = dst;
++      for (x = 0; x < width; x++, s++, d += 4)
++      {
++         uint16_t p = *s;
++         d[0]       = (uint8_t)(((p >> 11) & 0x1f) << 3);
++         d[1]       = (uint8_t)(((p >> 5)  & 0x3f) << 2);
++         d[2]       = (uint8_t)((p & 0x1f) << 3);
++         d[3]       = 0xff;
++      }
++   }
++}
++#endif
+ 
+ #if !defined(HAVE_PSGL) && !defined(ORBIS) && !defined(VITA) && !TARGET_OS_IPHONE
+ static bool gl2_tex_storage_allowed(void)
+@@ -3104,8 +3126,17 @@
+       const void *frame,
+       unsigned width, unsigned height, unsigned pitch)
+ {
++   {
++      static int lima_dbg0 = 0;
++      if (!lima_dbg0++)
++         RARCH_LOG("[lima] copy_frame bs=%u chainflags=%x\n",
++               gl->base_size, chain ? chain->flags : 0);
++   }
+ #ifdef GL2_KMS_FRAMES
+-   if (gl->kms_frames)
++   /* lima/Mali-400: attaching a 16-bit (RGB565) buffer as an EGLImage
++    * texture samples as black. Skip the lend for 16-bit frames and
++    * let them ride the texSubImage2RGBA8888 widening below. */
++   if (gl->kms_frames && gl->base_size != 2)
+    {
+       /* Lent and written: the texture takes the buffer, nothing moves */
+       if (egl_gbm_frames_attach(gl->kms_frames, frame, gl->tex_index))
+@@ -3162,6 +3193,23 @@
+       glPixelStorei(GL_UNPACK_ALIGNMENT,
+             gl2_get_alignment(width * gl->base_size));
+ 
++#ifdef HAVE_OPENGLES
++      if (gl->base_size == 2)
++      {
++         static int lima_dbg = 0;
++         if (!lima_dbg++)
++            RARCH_LOG("[lima] widening 565->rgba8888 %ux%u\n", width, height);
++         /* lima/Mali-400: RGB565 uploads sample as black and the
++          * EGLImage zero-copy path fails for 16-bit frames. Widen to
++          * RGBA8888 (matches gl2_set_texture_fmts) and upload here. */
++         gl2_rgb565_to_rgba8888(gl->conv_buffer,
++               (const uint16_t*)frame, width, height, pitch);
++         glTexSubImage2D(GL_TEXTURE_2D,
++               0, 0, 0, width, height, gl->texture_type,
++               gl->texture_fmt, gl->conv_buffer);
++         return;
++      }
++#endif
+       /* Fallback for GLES devices without GL_BGRA_EXT, where the
+        * texture cannot swizzle */
+       if (     gl->base_size == 4 && use_rgba
+@@ -3241,6 +3289,19 @@
+ #endif
+       glPixelStorei(GL_UNPACK_ALIGNMENT, gl2_get_alignment(pitch));
+ 
++#ifdef HAVE_OPENGLES
++      if (gl->base_size == 2)
++      {
++         static int lima_dbg = 0;
++         if (!lima_dbg++)
++            RARCH_LOG("[lima] widening 565->rgba8888 %ux%u\n", width, height);
++         /* lima/Mali-400: RGB565 textures sample as black.
++          * Widen to RGBA8888 (matches gl2_set_texture_fmts). */
++         gl2_rgb565_to_rgba8888(gl->conv_buffer,
++               (const uint16_t*)frame, width, height, pitch);
++         data_buf = gl->conv_buffer;
++      }
++#else
+       if (gl->base_size == 2 && (!(gl->flags & GL2_FLAG_HAVE_ES2_COMPAT)))
+       {
+          /* Convert to 32-bit textures on desktop GL.
+@@ -3257,6 +3318,7 @@
+                pitch);
+          data_buf = gl->conv_buffer;
+       }
++#endif
+       else
+       {
+          glPixelStorei(GL_UNPACK_ROW_LENGTH, pitch / gl->base_size);
+@@ -3436,6 +3498,13 @@
+    }
+ 
+    /* Use regular textures if we use HW render. */
++#if defined(HAVE_OPENGLES)
++   /* lima/Mali-400: image_buffer_write fails to create EGLImages for
++    * 16-bit frames (and RGB565 textures sample black anyway) - force
++    * the regular texSubImage2D upload path, which widens 565 to
++    * RGBA8888 in gl2_renderchain_copy_frame. */
++   chain->flags &= ~GL2_CHAIN_FLAG_EGL_IMAGES;
++#else
+    if ( (!(gl->flags & GL2_FLAG_HW_RENDER_USE))
+       &&  (gl_check_capability(GL_CAPS_EGLIMAGE))
+       &&  (gl->ctx_driver->image_buffer_init)
+@@ -3443,6 +3512,7 @@
+       chain->flags |=  GL2_CHAIN_FLAG_EGL_IMAGES;
+    else
+       chain->flags &= ~GL2_CHAIN_FLAG_EGL_IMAGES;
++#endif
+ }
+ 
+ static void gl_load_texture_data(
+@@ -7629,6 +7699,12 @@
+    /* Can be NULL for frame dupe / NULL render. */
+    if (frame)
+    {
++      {
++         static int lima_dbg1 = 0;
++         if (!lima_dbg1++)
++            RARCH_LOG("[lima] gl2_frame frame=%p hw_fbo=%u\n",
++                  frame, !!(gl->flags & GL2_FLAG_HW_RENDER_FBO_INIT));
++      }
+       if (!(gl->flags & GL2_FLAG_HW_RENDER_FBO_INIT))
+       {
+          gl2_update_input_size(gl, frame_width, frame_height, pitch, true);
+@@ -8523,9 +8599,17 @@
+ 
+ static INLINE void gl2_set_texture_fmts(gl2_t *gl, bool rgb32)
+ {
++#ifdef HAVE_OPENGLES
++   /* lima/Mali-400: RGB565 textures sample as black; carry 16-bit
++    * frames as RGBA8888 (converted in gl2_frame). */
++   gl->internal_fmt       = GL_RGBA;
++   gl->texture_type       = GL_RGBA;
++   gl->texture_fmt        = GL_UNSIGNED_BYTE;
++#else
+    gl->internal_fmt       = RARCH_GL_INTERNAL_FORMAT16;
+    gl->texture_type       = RARCH_GL_TEXTURE_TYPE16;
+    gl->texture_fmt        = RARCH_GL_FORMAT16;
++#endif
+    gl->base_size          = sizeof(uint16_t);
+ 
+    if (rgb32)

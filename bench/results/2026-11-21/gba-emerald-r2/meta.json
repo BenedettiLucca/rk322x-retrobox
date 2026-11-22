@@ -1,0 +1,14 @@
+{
+  "label": "gba-emerald-r2",
+  "start": 1795311824,
+  "end": 1795311981,
+  "elapsed_s": 157,
+  "frames_requested": 999999,
+  "frames_per_s_wall": 6369.42,
+  "core": "/usr/lib/arm-linux-gnueabihf/libretro/mgba_libretro.so",
+  "rom": "/roms/roms/gba/Pokemon - Emerald Version (USA, Europe).gba",
+  "out": "/tmp/bench/gba-emerald-r2",
+  "exit_code": 124,
+  "status": "ok",
+  "note": "time window controlled by timeout; rc 124 is expected; frames_per_s_wall includes startup; use strace page flips for delivered FPS"
+}
